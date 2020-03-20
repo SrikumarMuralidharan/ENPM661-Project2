@@ -78,7 +78,7 @@ class Maze:
         start_str_x = input('start x: ')
         start_str_y = input('start y: ')
         start_str_theta = input('start theta:')
-        start_point = [(int(start_str_x),int(start_str_y)), int(start_str_theta)]
+        start_point = [(int(start_str_x),200-int(start_str_y)), int(start_str_theta)]
 
         # Check if start point is valid in maze 
         if self.in_maze(start_point[0]):
@@ -90,7 +90,7 @@ class Maze:
         print('Please enter a goal point (x,y)')
         goal_str_x = input('start x: ')
         goal_str_y = input('start y: ')
-        goal_point = (int(goal_str_x),int(goal_str_y))
+        goal_point = (int(goal_str_x),200-int(goal_str_y))
 
         # Check if goal point is valid in maze 
         if self.in_maze(goal_point):
@@ -101,8 +101,10 @@ class Maze:
             
         self.start = start_point
         self.goal = goal_point
-
+        #print(self.start)
+        #print(self.goal)
 
 if __name__ == '__main__':
     mymaze = Maze()
+    #mymaze.get_user_nodes()
     
