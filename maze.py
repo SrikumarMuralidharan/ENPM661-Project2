@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-
+from sys import exit
 
 class Maze:
     def __init__(self):
@@ -9,25 +9,23 @@ class Maze:
         self.maze_w = 300
         self.BlankImage = 255 * np.ones(shape=[self.maze_h, self.maze_w, 3], dtype=np.uint8)
         self.BlackColor = (0, 0, 0)
-        self.RedColor = (0,0,255)
+        self.RedColor = (255,0,0)
+       
 
-        cv2.imshow('Blank map', self.BlankImage)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
-    def in_maze(self, point, clr):
+    def in_maze(self, point):
+        
         # Checks whether a point is in bounds and not an obstacle
         # Return False => obstacle and True => if in the map and not an obstacle
         x = point[0]
-        y = 200 - point[1]
+        y = point[1]
         if 0 <= x < self.maze_w and 0 <= y < self.maze_h:
             if ((x >= self.center[0] - self.rc) and (x <= self.center[0] + self.rc) and
                     (y >= self.maze_h - self.center[1] - self.rc) and (y <= self.maze_h - self.center[1] + self.rc)):
                 if ((x - 225) ** 2 + (y - 50) ** 2) <= self.rc ** 2:
                     print("Circular obstacle")
                     return False
-            elif (x >= 110) and (x <= 190) and (y >= 80) and (y <= 120):
-                if (((y - 100) ** 2 / self.ElMajorC ** 2) + ((x - 150) ** 2 / self.ElMinorC ** 2)) <= 1:
+            elif (x >= 108) and (x <= 192) and (y >= 78) and (y <= 122):
+                if (((y - 100) ** 2 / self.ElMinorC ** 2) + ((x - 150) ** 2 / self.ElMajorC ** 2)) <= 1:
                     print("Elliptical obstacle")
                     return False
             elif ((x >= (200 - self.rob_clr)) and (x <= (250 + self.rob_clr)) and
@@ -68,7 +66,7 @@ class Maze:
         # Draws a polygon on the maze image
         for i in range(15 - clr, 81 + clr):
             for j in range(20 - clr, 101 + clr):
-                if ((i + (13) * j + (340 - clr) >= 0)  and (i - (1.4) * j + (20 + clr) >= 0)  and (i + j - (100 + clr) <= 0)):
+                if ((i + (13) * j - (340 - 10*clr) >= 0)  and (i - (1.4) * j + (20 - clr) >= 0)  and (i + j - (100 + clr) <= 0)):
                     self.BlankImage[i, j] = self.RedColor
                 if ((i - (1.4) * j + (20 - clr) <= 0) and (i - (15 - clr) >= 0) and (i - (1.4) * j + (90 + clr) >= 0) and
                         (i + (1.2) * j - (170 + clr) <= 0) and (i - (1.2) * j + (10 - clr) <= 0)):
@@ -119,7 +117,8 @@ class Maze:
         # Enter the robot radius and clearance
         print("Please enter the clearance you want between the robot and the obstacles and the robot radius")
         self.rob_clr = int(input('Clearance: '))
-        rob_rad = int(input('Robot Radius: '))
+        self.rob_rad = int(input('Robot Radius: '))
+        self.rob_clr = self.rob_clr+self.rob_rad
 
         self.draw_circle(self.rob_clr)
         self.draw_ellipse(self.rob_clr)
@@ -137,12 +136,12 @@ class Maze:
         start_point = [(int(start_str_x), 200 - int(start_str_y)), int(start_str_theta)]
 
         # Check if start point is valid in maze
-        if self.in_maze(start_point[0], self.rob_clr):
+        if self.in_maze(start_point[0]):
             pass
         else:
             print("The start point is not valid")
             self.get_user_nodes()
-            quit()
+            exit()
 
         print('Please enter a goal point (x,y)')
         goal_str_x = input('start x: ')
@@ -150,19 +149,16 @@ class Maze:
         goal_point = (int(goal_str_x), 200 - int(goal_str_y))
 
         # Check if goal point is valid in maze
-        if self.in_maze(goal_point, self.rob_clr):
+        if self.in_maze(goal_point):
             pass
         else:
             print("The goal point is not valid")
             self.get_user_nodes()
-            quit()
+            exit()
 
         self.start = start_point
         self.goal = goal_point
-        print(self.start)
-        print(self.goal)
-        # return self.rob_clr
-
+        
 
 if __name__ == '__main__':
     mymaze = Maze()

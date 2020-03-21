@@ -1,3 +1,4 @@
+from sys import exit
 from maze import Maze
 from robot import RigidRobot
 
@@ -7,7 +8,6 @@ stepsize = 100 #controls the number of nodes shown in each frame of visualizatio
 
 mymaze = Maze()
 
-# Ask user for start point and goal point
 mymaze.get_user_nodes()
 
 # Construct the robot
@@ -20,6 +20,5 @@ if robot.foundGoal:
 else:
     print('The goal could not be found')
     exit()
-
 # Visualize the path
 robot.visualize(show_visualization,write_to_video,stepsize)

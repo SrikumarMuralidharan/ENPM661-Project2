@@ -2,15 +2,15 @@ import cv2
 import numpy as np
 import math
 import time
-from collections import deque
+from sys import exit
 
 class Robot:
     def __init__(self,maze):
         self.maze = maze
-
-    def move(self,point,direction,step_size,theta):
         self.threshold = 0.5
         self.Visited_node=np.zeros(shape=[int(self.maze.maze_w/self.threshold), int(self.maze.maze_h/self.threshold), 12], dtype=np.uint8)
+
+    def move(self,point,direction,step_size,theta):
         ang = math.radians(theta)
         ang_p = math.radians(point[1])    
         x = point[0][0]
@@ -82,109 +82,106 @@ class Robot:
         return False
         
     def A_Star(self):
+              
         start_point = self.maze.start
         goal_point = self.maze.goal
-        BlankImage = self.maze.BlankImage
-        print('shape0')
-        print(BlankImage.shape[0])
-        print('shape1')
-        print(BlankImage.shape[1])
-        nodes = []
+        #BlankImage = self.maze.BlankImage
+        
+        self.nodes = []
+        #Doubling threshold values in order to compensate for floating values and converting 
+        #them to int by mult by 2. Clearly, float numbers are rounded to 0.5 types as that is the threshold
+        self.cost2come = np.full((600,400,12),np.inf)
+        self.cost2go = np.full((600,400,12),np.inf)
+        self.parents = np.full((600,400,12),np.nan,dtype=np.int32)
 
-        # Checked points are additionally stored in a set which is much faster for 
-        # checking if the node has already been visited
-        costs = np.full((400,600),np.inf)
-        parents = np.full((400,600),np.nan,dtype=np.int32)
+        self.nodes.append(start_point) #add the start node to nodes
+        
+        #set start node to have parent of -1 and cost of 0, calculate cos2go for startnode
+        self.cost2come[2*start_point[0][0]][2*start_point[0][0]][int(start_point[1]/30)] = 0
+        self.cost2go[2*start_point[0][0]][2*start_point[0][0]][int(start_point[1]/30)] = self.Cost2Go_calc(start_point[0], goal_point)
+        self.parents[2*start_point[0][1],2*start_point[0][0]] = -1
+        
+        #setting starting node to be a visited node
+        self.Visited_node[2*start_point[0][0]][2*start_point[0][1]][int(start_point[1]/30)]=1
+        
+        #setting c2c and c2g values to be the same as start point values
+        c2c = 0
+        c2g = self.cost2go[2*start_point[0][0]][2*start_point[0][1]][int(start_point[1]/30)]
 
-         #set start node to have parent of -1 and cost of 0
-        nodes.append(start_point) #add the start node to nodes
-        costs[2*start_point[0][1],2*start_point[0][0]] = 0
-        parents[2*start_point[0][1],2*start_point[0][0]] = -1
-
-        # The queue is strucuted as a deque which allows for much faster operation
-        # when accessing the first item in the list
-        queue = deque()
-        queue.append(0) #set the start_node as the first node in the queue
-
+        queue = [(0, c2c+c2g)]        #queue designed as a list of tuples
         isgoal = False
-        cost2come = 0
-        i=0
-
+        
+        def queue_sec_element(a):
+            return a[1]
         while queue:
-            i+=1
-            break
-            print('iteration:'+str(i))
+            
+            #sort queue according to c2c+c2g value
+            queue.sort(key = queue_sec_element)
+            
             # Set the current node as the top of the queue and remove it
-            parent = queue.popleft()
-            cur_node = nodes[parent]
-            print('cur_node')
-            print(cur_node)
-            cost2come = costs[int(2*cur_node[0][1]),int(2*cur_node[0][0])]
+            parent,cost  = queue.pop(0)
+            
+            # Setting current node to be the node at parent location
+            cur_node = self.nodes[parent]
+            
+            #Updating c2c value at this location
+            c2c = self.cost2come[int(2*cur_node[0][0])][int(2*cur_node[0][1])][int(cur_node[1]/30)]
+            #formulating neighbours around this location
             neighbors = self.check_neighbors(cur_node)
 
             for n in neighbors:
+                print('neighbor')
+                print(n)
                 p = n[0]    #new_point
                 c = n[1]    #cost
-                if self.Visited_node[int(2*(p[0][0]))][int(2*(p[0][1]))][int(p[1]/30)]!=1:
-                    print('neigbor')
-                    print(p)
-                    nodes.append(p)
+                c2g=self.Cost2Go_calc(p[0],goal_point)
+                
+            
+                #condition to check for unvisited node
+                if self.Visited_node[int(2*(p[0][0]))][int(2*(p[0][1]))][int(p[1]/30)]==0:
+                    self.nodes.append(p)
                     self.Visited_node[int(2*(p[0][0]))][int(2*(p[0][1]))][int(p[1]/30)]=1
-                    queue.append(len(nodes)-1)
-                if cost2come + c + self.Cost2Go_calc(p[0],goal_point) < costs[int(2*p[0][1]),int(2*p[0][0])]:
-                    costs[int(2*p[0][1]),int(2*p[0][0])] = cost2come + c + self.Cost2Go_calc(p[0],goal_point)
-                    parents[int(2*p[0][1]),int(2*p[0][0])] = parent
+                    self.cost2come[int(2*(p[0][0]))][int(2*(p[0][1]))][int(p[1]/30)]= c2c+c
+                    self.parents[int(2*(p[0][0]))][int(2*(p[0][1]))][int(p[1]/30)]=parent
+                    i=int(round(p[0][0]))
+                    j=int(round(p[0][1]))
+                    self.maze.Blankimage[i,j] = (0,255,255)
+                    queue.append((len(self.nodes)-1, c2g))
+                
+                #condition to check for visited node and updating cost based on realtime values
+                elif c2c + c < self.cost2come[int(2*(p[0][0]))][int(2*(p[0][1]))][int(p[1]/30)]:
+                    self.cost2come[int(2*(p[0][0]))][int(2*(p[0][1]))][int(p[1]/30)]= c2c+c
+                    self.parents[int(2*(p[0][0]))][int(2*(p[0][1]))][int(p[1]/30)]=parent
+                   
                 if self.Reached_Goal_Area(p[0], goal_point):
                     isgoal = True
                     queue.clear()
                     break
 
-        self.nodes = nodes
-        self.parents = parents
-        self.costs = costs
         self.foundGoal = isgoal
-
+        
 
     def generate_path(self):
-        nodes = self.nodes
-        parents = self.parents
         #Assume the last item in nodes is the goal node
-        goal = nodes[-1]
-        parent = parents[int(2*goal[0][1]),int(2*goal[0][0])]
+        goal = self.nodes[-1]
+        parent = self.parents[int(2*goal[0][0])][int(2*goal[0][1])][int(goal[1]/30)]
         path_nodes = [parent]
-        while parent != -1:
-            parent_node = nodes[path_nodes[-1]]
-            parent = parents[int(2*parent_node[0][1]),int(2*parent_node[0][0])]
+        
+        while parent>0:
+            parent_node = self.nodes[path_nodes[-1]]
+            parent = int(self.parents[int(2*parent_node[0][0])][int(2*parent_node[0][1])][int(parent_node[1]/30)])
             path_nodes.append(parent)
         self.path = [goal]
         for ind in path_nodes:
             if ind == -1:
                 break
             else:
-                self.path.insert(0,nodes[ind])
+                self.path.insert(0,self.nodes[ind])
 
 
 class RigidRobot(Robot):
     def __init__(self,maze):
         super().__init__(maze)
-        self.get_params()
-
-    def get_params(self):
-        print('Please enter the size of your robot')
-        size_str = input('radius: ')
-        if size_str.isdigit():
-            self.radius = int(size_str)
-        else:
-            print('Please enter a number')
-            quit()
-        
-        print('Please enter the clearance for your robot')
-        clear_str = input('clearance: ')
-        if clear_str.isdigit():
-            self.clearance = int(clear_str)
-        else:
-            print('Please enter a number')
-            quit()
 
 
     def visualize(self,show,output,stepsize):
@@ -220,7 +217,7 @@ class RigidRobot(Robot):
             sx = int(round(point[0][0]))
             #sy = self.maze.height-point[1]
             sy = int(round(point[0][1]))
-            cv2.circle(self.maze.BlankImage,(sx,sy),self.radius,(0,0,255),-1)
+            cv2.circle(self.maze.BlankImage,(sx,sy),self.maze.rob_rad,(0,0,255),-1)
             if output:
                 out.write(self.maze.BlankImage)
                 time.sleep(0.005)
